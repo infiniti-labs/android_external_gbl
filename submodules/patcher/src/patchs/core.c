@@ -10,6 +10,75 @@
 #include "patchs/log.h"
 #include <string.h>
 
+static bool patch_android_device_state(char *Buffer, int32_t Size) {
+    int32_t Candidate = -1;
+    uint8_t Register = 0;
+    uint32_t LockedAdrp = 0, LockedAdd = 0;
+
+    for (int32_t Offset = 0; Offset <= Size - 24; Offset += 4) {
+        DecodedInst A = decode_at(Buffer, Offset);
+        DecodedInst B = decode_at(Buffer, Offset + 4);
+        DecodedInst C = decode_at(Buffer, Offset + 8);
+        DecodedInst D = decode_at(Buffer, Offset + 12);
+        if (A.type != INST_ADRP || B.type != INST_ADD_X_IMM ||
+            B.rt != A.rt || B.rn != A.rt ||
+            C.type != INST_ADRP || D.type != INST_ADD_X_IMM ||
+            D.rt != C.rt || D.rn != C.rt || A.rt == C.rt)
+            continue;
+        if (!str_at(Buffer, Size, calc_adrl_file_offset(Buffer, Offset, 0), "unlocked") ||
+            !str_at(Buffer, Size, calc_adrl_file_offset(Buffer, Offset + 8, 0), "locked"))
+            continue;
+        bool Property = false;
+        for (int32_t Next = Offset + 16; Next <= Offset + 40 && Next <= Size - 8; Next += 4) {
+            DecodedInst E = decode_at(Buffer, Next);
+            DecodedInst F = decode_at(Buffer, Next + 4);
+            if (E.type == INST_ADRP && F.type == INST_ADD_X_IMM &&
+                F.rt == E.rt && F.rn == E.rt &&
+                str_at(Buffer, Size, calc_adrl_file_offset(Buffer, Next, 0),
+                       "androidboot.vbmeta.device_state"))
+                Property = true;
+        }
+        if (!Property) continue;
+        if (Candidate >= 0) return false;
+        Candidate = Offset;
+        Register = A.rt;
+        LockedAdrp = C.raw;
+        LockedAdd = D.raw;
+    }
+    if (Candidate < 0) return false;
+    write_instr(Buffer, Candidate, adrp_with_rd(LockedAdrp, Register));
+    write_instr(Buffer, Candidate + 4, add_with_reg(LockedAdd, Register));
+    PATCH_LOG("Android vbmeta device state projected to locked at 0x%X\n", Candidate);
+    return true;
+}
+
+static uint64_t read_le64(const char *Buffer) {
+    uint64_t Value = 0;
+    for (unsigned Index = 0; Index < 8; Index++)
+        Value |= (uint64_t)(uint8_t)Buffer[Index] << (Index * 8);
+    return Value;
+}
+
+static bool patch_android_boot_color(char *Buffer, int32_t Size) {
+    int32_t Candidate = -1;
+    for (int32_t Offset = 0; Offset <= Size - 48; Offset += 8) {
+        if (read_le64(Buffer + Offset) != 0 ||
+            read_le64(Buffer + Offset + 16) != 1 ||
+            read_le64(Buffer + Offset + 32) != 2)
+            continue;
+        if (!str_at(Buffer, Size, read_le64(Buffer + Offset + 8), "green") ||
+            !str_at(Buffer, Size, read_le64(Buffer + Offset + 24), "orange") ||
+            !str_at(Buffer, Size, read_le64(Buffer + Offset + 40), "yellow"))
+            continue;
+        if (Candidate >= 0) return false;
+        Candidate = Offset;
+    }
+    if (Candidate < 0) return false;
+    memcpy(Buffer + Candidate + 24, Buffer + Candidate + 8, 8);
+    PATCH_LOG("Android orange boot-state output redirected to green at 0x%X\n", Candidate);
+    return true;
+}
+
 static int32_t patch_abl_gbl(char *Buffer, int32_t Size) {
     static const char Target[] = {'e', 0, 'f', 0, 'i', 0, 's', 0, 'p', 0};
     static const char Replacement[] = {'n', 0, 'u', 0, 'l', 0, 'l', 0, 's', 0};
@@ -133,6 +202,12 @@ uint32_t PatchBufferFlags(char *Data, int32_t Size) {
     PATCH_LOG("libavb_force_success patch applied\n");
     ApplyDiceModeNormal(Data, &Dice);
     Flags |= PATCH_REQUIRED_DICE;
+    if (!patch_android_device_state(Data, Size)) {
+        PATCH_LOG("Warning: Android device-state reporting site is absent or ambiguous\n");
+    }
+    if (!patch_android_boot_color(Data, Size)) {
+        PATCH_LOG("Warning: Android boot-state output table is absent or ambiguous\n");
+    }
     if (patch_abl_gbl(Data, Size) != 0) {
         PATCH_LOG("Warning: Failed to patch ABL GBL\n");
     } else {

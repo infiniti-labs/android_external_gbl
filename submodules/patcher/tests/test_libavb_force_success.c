@@ -573,6 +573,17 @@ static void TestOplusFastbootPatch(void) {
 }
 
 int main(void) {
+    uint8_t Image[IMAGE_SIZE];
+    uint64_t Table[] = {0, 0x800, 1, 0x810, 2, 0x820};
+    MakeFixture(Image, true);
+    memcpy(Image + 0x700, Table, sizeof(Table));
+    memcpy(Image + 0x800, "green", 6);
+    memcpy(Image + 0x810, "orange", 7);
+    memcpy(Image + 0x820, "yellow", 7);
+    assert(PatchBuffer((char *)Image, IMAGE_SIZE));
+    assert(memcmp(Image + 0x718, Image + 0x708, 8) == 0);
+    assert(memcmp(Image + 0x728, &Table[5], 8) == 0);
+
     TestExactPatchWords();
     TestBackscanCrossesEarlierRet();
     TestWzrDestinationIsRejected();
