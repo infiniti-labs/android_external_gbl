@@ -1,0 +1,6 @@
+cc_binary_host {
+    name: "gbl_metadata",
+    srcs: ["metadata.cpp"],
+    cpp_std: "c++17",
+    cflags: ["-fexceptions"],
+}

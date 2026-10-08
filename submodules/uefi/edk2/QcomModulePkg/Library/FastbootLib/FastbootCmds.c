@@ -2210,13 +2210,13 @@ VOID InitMultiThreadEnv ()
   }
 
   KernIntf->Lock->InitLock ("DOWNLOAD", &LockDownload);
-  if (&LockDownload == NULL) {
+  if (LockDownload == NULL) {
      DEBUG ((EFI_D_ERROR, "InitLock LockDownload error \n"));
      return;
   }
 
   KernIntf->Lock->InitLock ("FLASH", &LockFlash);
-  if (&LockFlash == NULL) {
+  if (LockFlash == NULL) {
     DEBUG ((EFI_D_ERROR, "InitLock LockFlash error \n"));
     KernIntf->Lock->DestroyLock (LockDownload);
     return;

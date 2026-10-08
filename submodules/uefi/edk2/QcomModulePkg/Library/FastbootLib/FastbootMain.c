@@ -734,7 +734,7 @@ EFI_STATUS FastbootInitialize (VOID)
 {
   EFI_STATUS Status = EFI_SUCCESS;
 
-  DEBUG ((EFI_D_INFO, "Fastboot Build Info: %a %a\n", __DATE__, __TIME__));
+  DEBUG ((EFI_D_INFO, "Fastboot Build Version: %a\n", SFB_BDS_VERSION));
 
   /* Start the USB device enumeration */
   Status = FastbootUsbDeviceStart ();

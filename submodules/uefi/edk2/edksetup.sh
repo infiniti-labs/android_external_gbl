@@ -112,26 +112,11 @@ function SetupEnv()
 
 function SetupPython3()
 {
-  if [ $origin_version ];then
-    origin_version=
-  fi
-  for python in $(whereis python3)
-  do
-    python=$(echo $python | grep "[[:digit:]]$" || true)
-    python_version=${python##*python}
-    if [ -z "${python_version}" ] || (! command -v $python >/dev/null 2>&1);then
-      continue
-    fi
-    if [ -z $origin_version ];then
-      origin_version=$python_version
-      export PYTHON_COMMAND=$python
-      continue
-    fi
-      if [[ "$origin_version" < "$python_version" ]]; then
-      origin_version=$python_version
-      export PYTHON_COMMAND=$python
-    fi
-  done
+  PYTHON_COMMAND=$(command -v python3) || {
+    echo "python3 is unavailable in the configured build PATH."
+    return 1
+  }
+  export PYTHON_COMMAND
   return 0
 }
 

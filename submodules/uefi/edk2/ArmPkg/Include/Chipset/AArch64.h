@@ -126,6 +126,7 @@
   .org 0x800;                     \
   .previous
 
+#ifndef __ASSEMBLER__
 VOID
 EFIAPI
 ArmEnableSWPInstruction (
@@ -239,4 +240,5 @@ ArmWriteCntHctl (
   IN UINT32 CntHctl
   );
 
+#endif
 #endif // __AARCH64_H__

@@ -2,7 +2,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include "SuperFbLaunchPolicy.h"
 #include "Hook/HookCommon.h"
-#include "Generated/GblEmbedded.h"
+#include <GblEmbedded.h>
 
 EFI_STATUS GblLaunchEmbedded (VOID) {
   SFB_MODE2_PROFILE Profile;

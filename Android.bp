@@ -1,0 +1,334 @@
+cc_library_host_static {
+    name: "libgbl_abl_patch",
+    srcs: [
+        "submodules/patcher/src/patchs/core.c",
+        "submodules/patcher/src/patchs/libavb_force_success.c",
+        "submodules/patcher/src/patchs/dice_mode.c",
+        "submodules/patcher/src/patchs/fastboot_lock_gates.c",
+        "submodules/patcher/src/patchs/pe_sections.c",
+        "submodules/patcher/src/patchs/oplus/warning.c",
+        "submodules/patcher/src/patchs/oplus/forceenablefastboot.c",
+        "submodules/patcher/src/arm64_inst/arm64_inst_decoder.c",
+        "submodules/patcher/src/arm64_inst/utils.c",
+    ],
+    local_include_dirs: ["submodules/patcher/include"],
+    cflags: [
+        "-DCANOE_PATCH_SILENT",
+        "-fno-strict-aliasing",
+    ],
+    compile_multilib: "64",
+}
+
+cc_library_host_static {
+    name: "libgbl_lzma",
+    srcs: ["submodules/uefi/edk2/BaseTools/Source/C/LzmaCompress/Sdk/C/LzmaDec.c"],
+    export_include_dirs: ["submodules/uefi/edk2/BaseTools/Source/C/LzmaCompress/Sdk/C"],
+    compile_multilib: "64",
+}
+
+cc_binary_host {
+    name: "gbl_asset_generator",
+    srcs: ["tools/android/asset_generator.cpp"],
+    local_include_dirs: ["submodules/patcher/include"],
+    static_libs: [
+        "libgbl_abl_patch",
+        "libgbl_lzma",
+        "libcrypto",
+    ],
+    cpp_std: "c++17",
+    cflags: ["-fexceptions"],
+    compile_multilib: "64",
+}
+
+genrule {
+    name: "gbl_embedded_assets",
+    tools: ["gbl_asset_generator"],
+    srcs: [
+        "//vendor/oneplus/infiniti:gbl_stock_abl",
+        "tools/abl-tzmap/evidence/*.commands",
+    ],
+    out: [
+        "GblEmbedded.h",
+        "prepared/boot.efi",
+        "prepared/boot.efi.gm2p",
+        "prepared/boot.efi.tzmap",
+    ],
+    cmd: "mkdir -p $(genDir)/evidence && cp $(locations tools/abl-tzmap/evidence/*.commands) $(genDir)/evidence/ && $(location gbl_asset_generator) --abl $(location //vendor/oneplus/infiniti:gbl_stock_abl) --staged $(genDir)/prepared --evidence $(genDir)/evidence --header $(genDir)/GblEmbedded.h" +
+        " --system-version " + select(soong_config_variable("gbl_build", "system_version"), {
+            any @ val: val,
+            default: "0",
+        }) +
+        " --system-spl " + select(soong_config_variable("gbl_build", "system_spl"), {
+            any @ val: val,
+            default: "0",
+        }) +
+        " --rot-digest " + select(soong_config_variable("gbl_build", "rot_digest"), {
+            any @ val: val,
+            default: "unset",
+        }) +
+        " --pubkey-digest " + select(soong_config_variable("gbl_build", "pubkey_digest"), {
+            any @ val: val,
+            default: "unset",
+        }) +
+        " --verified-boot-hash " + select(soong_config_variable("gbl_build", "verified_boot_hash"), {
+            any @ val: val,
+            default: "unset",
+        }),
+}
+
+genrule {
+    name: "gbl_firmware_metadata",
+    tools: ["gbl_metadata"],
+    srcs: [
+        "submodules/uefi/edk2/MdePkg/MdePkg.dec",
+        "submodules/uefi/edk2/MdeModulePkg/MdeModulePkg.dec",
+        "submodules/uefi/edk2/ArmPkg/ArmPkg.dec",
+        "submodules/uefi/edk2/ArmPlatformPkg/ArmPlatformPkg.dec",
+        "submodules/uefi/edk2/EmbeddedPkg/EmbeddedPkg.dec",
+        "submodules/uefi/edk2/QcomModulePkg/QcomModulePkg.dec",
+        "submodules/uefi/edk2/FatPkg/FatPkg.dec",
+        "submodules/uefi/edk2/Ext4Pkg/Ext4Pkg.dec",
+        "submodules/uefi/edk2/QcomModulePkg/QcomModulePkg.dsc",
+        "submodules/uefi/edk2/QcomModulePkg/Application/LinuxLoader/LinuxLoader.inf",
+        "version.mk",
+    ],
+    out: [
+        "AutoGen.h",
+        "AutoGen.c",
+    ],
+    cmd: "$(location gbl_metadata) $(genDir)/AutoGen.h $(genDir)/AutoGen.c $(in)",
+}
+
+cc_defaults {
+    name: "gbl_uefi_defaults",
+    nocrt: true,
+    no_libcrt: true,
+    system_shared_libs: [],
+    stl: "none",
+    c_std: "gnu11",
+    installable: false,
+    compile_multilib: "64",
+    enabled: false,
+    target: {
+        android_arm64: {
+            enabled: true,
+        },
+    },
+    generated_headers: ["gbl_firmware_metadata"],
+    local_include_dirs: [
+        "submodules/uefi/edk2/MdePkg/Include",
+        "submodules/uefi/edk2/MdePkg/Include/AArch64",
+        "submodules/uefi/edk2/MdeModulePkg/Include",
+        "submodules/uefi/edk2/ArmPkg/Include",
+        "submodules/uefi/edk2/ArmPlatformPkg/Include",
+        "submodules/uefi/edk2/EmbeddedPkg/Include",
+        "submodules/uefi/edk2/QcomModulePkg/Include",
+        "submodules/uefi/edk2/QcomModulePkg/Library",
+        "submodules/uefi/edk2/QcomModulePkg/Include/Library",
+        "submodules/uefi/edk2/QcomModulePkg/Library/FastbootLib",
+        "submodules/uefi/edk2/MdePkg/Library/BaseMemoryLibOptDxe",
+        "submodules/uefi/edk2/MdePkg/Library/BaseLib",
+        "submodules/uefi/edk2/ArmPkg/Library/ArmLib",
+        "submodules/uefi/edk2/Ext4Pkg/Include",
+        "tools/android",
+        "submodules/uefi/edk2/QcomModulePkg/Application/LinuxLoader",
+    ],
+    cflags: [
+        "-include AutoGen.h",
+        "-fshort-wchar",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-fno-stack-protector",
+        "-fno-strict-aliasing",
+        "-mstrict-align",
+        "-Wno-error",
+        "-DTEST_ADAPTER",
+        "-DVERIFIED_BOOT_ENABLED",
+        "-DZ_SOLO",
+        "-DPRODUCT_NAME=\"canoe\"",
+        "-DENABLE_UPDATE_PARTITIONS_CMDS",
+        "-DENABLE_BOOT_CMD",
+        "-DENABLE_DEVICE_CRITICAL_LOCK_UNLOCK_CMDS",
+        "-DREMOVE_CARVEOUT_REGION",
+        "-DQSPA_BOOTCONFIG_ENABLE",
+    ],
+    asflags: [
+        "-include assembly.h",
+        "-D__ASSEMBLY__",
+    ],
+    sanitize: {
+        never: true,
+    },
+    native_coverage: false,
+    lto: {
+        never: true,
+    },
+}
+
+genrule {
+    name: "gbl_msd_embed",
+    tools: ["gbl_metadata"],
+    srcs: ["submodules/uefi/blobs/canoe-usbmsd.efi"],
+    out: ["CanoeMsdVariantData.c"],
+    cmd: "$(location gbl_metadata) --embed $(in) $(out)",
+}
+
+genrule {
+    name: "gbl_managed_msd_embed",
+    tools: ["gbl_metadata"],
+    srcs: ["submodules/uefi/blobs/canoe-managed-msd.efi"],
+    out: ["CanoeManagedMsdVariantData.c"],
+    cmd: "$(location gbl_metadata) --embed $(in) $(out)",
+}
+
+cc_library_static {
+    name: "libgbl_uefi_support",
+    defaults: ["gbl_uefi_defaults"],
+    srcs: [
+        "submodules/uefi/edk2/ArmPkg/Library/ArmArchTimerLib/ArmArchTimerLib.c",
+        "submodules/uefi/edk2/ArmPkg/Library/ArmGenericTimerPhyCounterLib/ArmGenericTimerPhyCounterLib.c",
+        "submodules/uefi/edk2/ArmPkg/Library/ArmLib/ArmLib.c",
+        "submodules/uefi/edk2/ArmPkg/Library/ArmLib/AArch64/*.c",
+        "submodules/uefi/edk2/ArmPkg/Library/ArmLib/AArch64/*.S",
+        "submodules/uefi/edk2/ArmPkg/Library/CompilerIntrinsicsLib/memcpy.c",
+        "submodules/uefi/edk2/ArmPkg/Library/CompilerIntrinsicsLib/memset.c",
+        "submodules/uefi/edk2/ArmPkg/Library/CompilerIntrinsicsLib/AArch64/ashlti3.S",
+        "submodules/uefi/edk2/MdePkg/Library/BaseLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseLib/Arm/InternalSwitchStack.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseLib/Arm/Unaligned.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseLib/AArch64/*.S",
+        "submodules/uefi/edk2/MdePkg/Library/BaseMemoryLibOptDxe/*Wrapper.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseMemoryLibOptDxe/Arm/ScanMemGeneric.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseMemoryLibOptDxe/Arm/MemLibGuid.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseMemoryLibOptDxe/AArch64/*.S",
+        "submodules/uefi/edk2/MdePkg/Library/BasePrintLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/BasePcdLibNull/PcdLib.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseDebugPrintErrorLevelLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseOrderedCollectionRedBlackTreeLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/DxeServicesTableLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/UefiBootServicesTableLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/UefiRuntimeServicesTableLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/UefiMemoryAllocationLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/UefiDevicePathLib/*.c",
+        "submodules/uefi/edk2/MdePkg/Library/UefiLib/*.c",
+        "submodules/uefi/edk2/MdeModulePkg/Library/DxeReportStatusCodeLib/*.c",
+        "submodules/uefi/edk2/MdeModulePkg/Library/PeiDxeDebugLibReportStatusCode/*.c",
+        "submodules/uefi/edk2/EmbeddedPkg/Library/FdtLib/*.c",
+        "submodules/uefi/edk2/EmbeddedPkg/Library/TimeBaseLib/*.c",
+        "submodules/uefi/edk2/QcomModulePkg/Library/RebootTargetLib/*.c",
+        "submodules/uefi/edk2/QcomModulePkg/Library/StackCanary/*.c",
+        "submodules/uefi/edk2/QcomModulePkg/Library/FastbootLib/*.c",
+        "submodules/uefi/edk2/FatPkg/EnhancedFatDxe/*.c",
+        "submodules/uefi/edk2/Ext4Pkg/Ext4Dxe/*.c",
+        "submodules/uefi/edk2/MdeModulePkg/Universal/Disk/DiskIoDxe/*.c",
+        "submodules/uefi/edk2/MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/*.c",
+    ],
+    exclude_srcs: [
+        "submodules/uefi/edk2/MdePkg/Library/BaseLib/X86*.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseLib/Unaligned.c",
+        "submodules/uefi/edk2/MdePkg/Library/BaseLib/ChkStkGcc.c",
+        "submodules/uefi/edk2/QcomModulePkg/Library/FastbootLib/SparseImg.c",
+    ],
+}
+
+cc_binary {
+    name: "gbl_uefi_elf",
+    defaults: ["gbl_uefi_defaults"],
+    srcs: [
+        "tools/android/entry.c",
+        ":gbl_firmware_metadata{AutoGen.c}",
+        ":gbl_msd_embed",
+        ":gbl_managed_msd_embed",
+        "submodules/uefi/edk2/QcomModulePkg/Application/LinuxLoader/*.c",
+        "submodules/uefi/edk2/QcomModulePkg/Application/LinuxLoader/Hook/*.c",
+    ],
+    generated_headers: ["gbl_embedded_assets"],
+    exclude_srcs: ["submodules/uefi/edk2/QcomModulePkg/Application/LinuxLoader/Test*.c"],
+    static_libs: ["libgbl_uefi_support"],
+    static_executable: true,
+    strip: {
+        none: true,
+    },
+    linker_scripts: ["tools/android/uefi.lds"],
+    ldflags: [
+        "-Wl,-e,_ModuleEntryPoint",
+        "-Wl,--emit-relocs",
+        "-Wl,--discard-none",
+        "-Wl,--defsym=PECOFF_HEADER_SIZE=0x228",
+        "-Wl,-z,common-page-size=4096",
+        "-Wl,-z,max-page-size=4096",
+        "-Wl,--build-id=none",
+        "-Wl,--pack-dyn-relocs=none",
+    ],
+}
+
+cc_library_host_static {
+    name: "libgbl_basetools_common",
+    srcs: ["submodules/uefi/edk2/BaseTools/Source/C/Common/*.c"],
+    exclude_srcs: ["submodules/uefi/edk2/BaseTools/Source/C/Common/Ebc*.c"],
+    local_include_dirs: [
+        "submodules/uefi/edk2/BaseTools/Source/C/Include",
+        "submodules/uefi/edk2/BaseTools/Source/C/Include/Common",
+        "submodules/uefi/edk2/BaseTools/Source/C/Include/X64",
+        "submodules/uefi/edk2/BaseTools/Source/C/Common",
+    ],
+    export_include_dirs: [
+        "submodules/uefi/edk2/BaseTools/Source/C/Include",
+        "submodules/uefi/edk2/BaseTools/Source/C/Include/Common",
+        "submodules/uefi/edk2/BaseTools/Source/C/Include/X64",
+        "submodules/uefi/edk2/BaseTools/Source/C/Common",
+    ],
+    cflags: [
+        "-fshort-wchar",
+        "-Wno-error",
+    ],
+}
+
+cc_binary_host {
+    name: "gbl_genfw",
+    srcs: ["submodules/uefi/edk2/BaseTools/Source/C/GenFw/*.c"],
+    static_libs: ["libgbl_basetools_common"],
+    cflags: [
+        "-fshort-wchar",
+        "-Wno-error",
+    ],
+}
+
+cc_genrule {
+    name: "gbl_efi_image",
+    tools: ["gbl_genfw"],
+    srcs: [":gbl_uefi_elf"],
+    out: ["BDS.efi"],
+    cmd: "$(location gbl_genfw) -e UEFI_APPLICATION -o $(out) $(in)",
+}
+
+prebuilt_etc {
+    name: "gbl_efi",
+    src: ":gbl_efi_image",
+    filename: "BDS.efi",
+    installable: false,
+}
+
+soong_config_module_type {
+    name: "gbl_init_library",
+    module_type: "cc_library_static",
+    config_namespace: "gbl_init",
+    value_variables: ["verified_boot_hash"],
+    properties: ["cflags"],
+}
+
+gbl_init_library {
+    name: "libinit_gbl",
+    recovery_available: true,
+    srcs: ["init/init_gbl.cpp"],
+    whole_static_libs: ["//device/oneplus/sm8850-common:libinit_oplus"],
+    shared_libs: [
+        "libbase",
+        "libfs_mgr",
+    ],
+    soong_config_variables: {
+        verified_boot_hash: {
+            cflags: ["-DGBL_VERIFIED_BOOT_HASH=\"%s\""],
+        },
+    },
+}
