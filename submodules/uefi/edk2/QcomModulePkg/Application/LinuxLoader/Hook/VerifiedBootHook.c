@@ -134,10 +134,6 @@ SfbRepairDeviceInfo (IN BOOLEAN Required, IN SFB_CONFIG_LOCK_POLICY Policy)
   DeviceInfo Info;
   BOOLEAN ObservedUnlocked;
   BOOLEAN ObservedCritical;
-  BOOLEAN Satisfies;
-  BOOLEAN Repair;
-  SFB_LOCK_ACTION LockAction;
-  CONST CHAR8 *Action;
 
   /* A failed read must invalidate an earlier observation rather than publish
    * stale lock state if the caller later falls back to fastboot. */
@@ -161,35 +157,9 @@ SfbRepairDeviceInfo (IN BOOLEAN Required, IN SFB_CONFIG_LOCK_POLICY Policy)
   }
   SfbRecordObservedDevInfo (ObservedUnlocked, ObservedCritical);
 
-  Satisfies = (BOOLEAN)(!Required ||
-                        (ObservedUnlocked && ObservedCritical));
-  Repair = FALSE;
-  if (Satisfies) {
-    Action = "none";
-    Status = EFI_SUCCESS;
-  } else if (Policy == SfbConfigLockNever) {
-    Action = "refused";
-    Status = EFI_ACCESS_DENIED;
-  } else {
-    Action = "repair";
-    Repair = TRUE;
-    Status = EFI_SUCCESS;
-  }
-  if (Repair) {
-    if (!SfbDeviceInfoSetLock ((SFB_UINT8 *)&Info, sizeof (Info),
-                               TRUE, TRUE, &LockAction)) {
-      Status = EFI_COMPROMISED_DATA;
-    } else {
-      Status = gOrigRwDeviceState (gVerifiedBoot, WRITE_CONFIG,
-                                   (UINT8 *)&Info, sizeof (Info));
-    }
-  }
-  DEBUG ((EFI_D_INFO,
-          "SFB: MARK devinfo-repair observed-unlocked=%u observed-critical=%u "
-          "required=%u action=%a status=%r\n",
-          (UINT32)ObservedUnlocked, (UINT32)ObservedCritical,
-          (UINT32)Required, Action, Status));
-  return Status;
+  (VOID)Required;
+  (VOID)Policy;
+  return EFI_SUCCESS;
 }
 
 EFI_STATUS

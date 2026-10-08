@@ -1221,7 +1221,7 @@ SfbHandleAdvanced (IN VOID *Context, IN UINTN Row, IN SFB_KEY Key)
   CONST SFB_MENU_STATE *Menu = &State->Menu;
   (VOID)Key;
   switch (Row) {
-  case 0: SfbRunEntryPreference (Menu, SfbPreferenceDefault); break;
+  case 0: return SfbMenuActionContinue;
   case 1: SfbRunEntryPreference (Menu, SfbPreferenceBootOnce); break;
   case 2: SfbRunEntryPreference (Menu, SfbPreferenceMode); break;
   case 3: SfbRunPolicyMenu (); break;
@@ -1240,7 +1240,7 @@ STATIC VOID
 SfbRunAdvancedMenu (IN SFB_MAIN_MENU_CONTEXT *State)
 {
   STATIC SFB_MENU_ROW Rows[] = {
-    {L"Save a default entry", L" "}, {L"Arm boot once", L" "},
+    {L"Active Android slot (automatic)", L" "}, {L"Arm boot once", L" "},
     {L"Change an Android entry's mode", L" "}, {L"Boot policy",L" "},
     {L"Add a Super Fastboot entry",L" "},
     {L"Android EFI tools",L" "}, {L"Select an EFI file",L" "},

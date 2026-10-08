@@ -30,10 +30,10 @@
  * LoadOptions. Sized generously because the launched image owns its own
  * argument grammar and may need several paths plus a kernel command line. */
 #define SFB_CONFIG_OPTIONS_CHARS   384u
-#define SFB_CONFIG_KEY_WINDOW_DEFAULT    1200u
+#define SFB_CONFIG_KEY_WINDOW_DEFAULT    500u
 #define SFB_CONFIG_KEY_WINDOW_MIN        500u
 #define SFB_CONFIG_KEY_WINDOW_MAX        5000u
-#define SFB_CONFIG_MENU_TIMEOUT_DEFAULT  3u
+#define SFB_CONFIG_MENU_TIMEOUT_DEFAULT  0u
 #define SFB_CONFIG_MENU_TIMEOUT_MAX      300u
 #define SFB_CONFIG_BLS_STEM_CHARS        64u
 

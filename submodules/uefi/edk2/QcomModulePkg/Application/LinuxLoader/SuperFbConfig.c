@@ -458,13 +458,13 @@ SfbConfigParse (
     return FALSE;
   }
   SfbCfgZero (Config, sizeof (*Config));
-  Config->Mode = (SFB_UINT8)SFB_CONFIG_MODE_FAKE_LOCKED;
+  Config->Mode = 2;
   Config->MenuMode = SfbConfigMenuSilent;
   Config->KeyWindowMs = SFB_CONFIG_KEY_WINDOW_DEFAULT;
   Config->MenuTimeoutSeconds = SFB_CONFIG_MENU_TIMEOUT_DEFAULT;
-  Config->ShowBooting = TRUE;
+  Config->ShowBooting = FALSE;
   Config->FastbootdMode2 = TRUE;
-  Config->LockPolicy = SfbConfigLockAsNeeded;
+  Config->LockPolicy = SfbConfigLockNever;
   Config->DefaultIndex = SFB_CONFIG_NO_DEFAULT;
   DefaultId[0] = '\0';
   DefaultBlsStem[0] = '\0';
@@ -669,16 +669,6 @@ SfbConfigParse (
     if (SfbCfgKeyIs (Begin, KeyEnd, "mode")) {
       if (!SfbCfgParseMode (Value, End, &Config->Mode)) {
         Config->Mode = (SFB_UINT8)SFB_CONFIG_MODE_FAKE_LOCKED;
-        Config->RejectedLines++;
-      }
-      continue;
-    }
-    if (SfbCfgKeyIs (Begin, KeyEnd, "devinfo-repair")) {
-      if (SfbCfgKeyIs (Value, End, "never")) {
-        Config->LockPolicy = SfbConfigLockNever;
-      } else if (SfbCfgKeyIs (Value, End, "asneeded")) {
-        Config->LockPolicy = SfbConfigLockAsNeeded;
-      } else {
         Config->RejectedLines++;
       }
       continue;

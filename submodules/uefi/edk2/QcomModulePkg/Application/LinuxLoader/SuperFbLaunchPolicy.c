@@ -254,11 +254,11 @@ SfbResolveManagedAblMode (
   Status = SfbLoadMode2Profile (Entry, Profile);
   if (EFI_ERROR (Status)) {
     *ProfileStatus = Status;
-    *EffectiveMode = SfbBootModeHonestUnlocked;
     ZeroMem (Profile, sizeof (*Profile));
     DEBUG ((EFI_D_ERROR,
             "SFB: MARK profile-load status=%r effective-mode=%u\n",
             Status, (UINT32)*EffectiveMode));
+    return Status;
   } else {
     DEBUG ((EFI_D_INFO,
             "SFB: MARK profile-load status=%r version=%u "

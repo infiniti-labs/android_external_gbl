@@ -25,6 +25,16 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    SlotPayload {
+        #[arg(long)]
+        loader: PathBuf,
+        #[arg(long)]
+        profile: PathBuf,
+        #[arg(long)]
+        tzmap: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Derive a loader and sidecars, or probe an ABL without writing outputs.
     Build(build::BuildArgs),
     /// Check whether an ABL contains the supported vulnerable loader.
@@ -118,6 +128,10 @@ impl ToolResolver for CommandTools<'_> {
 impl Cli {
     fn execute(&self) -> Result<Value, Box<dyn std::error::Error>> {
         Ok(match &self.command {
+            Command::SlotPayload { loader, profile, tzmap, output } => {
+                crate::slot_payload::pack(loader, profile, tzmap, output)?;
+                json!({"output": output})
+            }
             Command::Build(args) => {
                 match build::execute(args, &CommandTools(args.tools.as_deref()))? {
                     build::BuildOutcome::Full(result) => serde_json::to_value(result)?,

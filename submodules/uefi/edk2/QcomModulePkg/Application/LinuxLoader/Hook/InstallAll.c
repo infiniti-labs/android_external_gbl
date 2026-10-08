@@ -182,7 +182,8 @@ SfbPrepareManagedAblHooks (
 
   /* The backing invariant is repaired using the first real VB original, while
    * policy is still disabled and no wrapper is visible to firmware. */
-  Status = SfbRepairDeviceInfo (TRUE, LockPolicy);
+  (VOID)LockPolicy;
+  Status = SfbRepairDeviceInfo (FALSE, SfbConfigLockNever);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR,
             "SFB: MARK hook-stage stage=repair "

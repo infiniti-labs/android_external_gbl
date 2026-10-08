@@ -87,6 +87,7 @@
 #include "SuperFbLaunchPolicy.h"
 
 #define MAX_APP_STR_LEN 64
+EFI_STATUS GblLaunchSlot (VOID);
 #define MAX_NUM_FS 10
 #define DEFAULT_STACK_CHK_GUARD 0xc0c0c0c0
 
@@ -138,6 +139,24 @@ LinuxLoaderEntry (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     /* Leave the partition table alone; it was never populated. */
   } else {
     UpdatePartitionEntries ();
+  }
+
+  {
+    SFB_KEY Key = SfbWaitForPowerOnKey (500);
+    if (Key == SfbKeyTimeout) {
+      Status = GblLaunchSlot ();
+      if (Status == EFI_NOT_FOUND) Status = EFI_SUCCESS;
+      else if (EFI_ERROR (Status)) {
+        SfbOemWatchdogDisable ();
+        gBS->SetWatchdogTimer (0, 0x10000, 0, NULL);
+        Status = FastbootInitialize ();
+      }
+    } else {
+      SfbOemWatchdogDisable ();
+      gBS->SetWatchdogTimer (0, 0x10000, 0, NULL);
+      Status = FastbootInitialize ();
+    }
+    goto stack_guard_update_default;
   }
 
   {

@@ -1254,67 +1254,17 @@ SfbResolveDefault (IN OUT SFB_MENU_STATE *Menu,
                    IN CONST SFB_CONFIG   *Config)
 {
   UINTN Index;
-  UINTN ConfiguredIndex = Menu->DefaultIndex;
-
+  (VOID)Config;
   Menu->DefaultFromConfig = FALSE;
   Menu->DefaultIndex = SFB_NO_INDEX;
-  if (Config == NULL || !Config->Valid || !Config->DefaultSpecified) {
-    /* No persisted target: retain the historical first internal EFI row as
-     * the cursor fallback, but never mark it unattended-defaultable. */
-    for (Index = 0; Index < Menu->Count; Index++) {
-      if (Menu->Entry[Index].Kind == SfbEntryEfiFile &&
-          !Menu->Entry[Index].IsUsb) {
-        Menu->DefaultIndex = Index;
-        break;
-      }
-    }
-    return;
-  }
-
-  if (Config->DefaultIsBls) {
-    for (Index = 0; Index < Menu->Count; Index++) {
-      CONST SFB_BLS_ENTRY *Payload;
-
-      if ((Menu->Entry[Index].Kind != SfbEntryBlsLinux &&
-           Menu->Entry[Index].Kind != SfbEntryBlsEfi) ||
-          Menu->Entry[Index].IsUsb) {
-        continue;
-      }
-      Payload = SfbBlsPayload (Menu->Entry[Index].BlsIndex);
-      if (Payload != NULL &&
-          SfbAsciiEqual (Payload->Stem, Config->DefaultBlsStem)) {
-        Menu->DefaultIndex = Index;
-        Menu->DefaultFromConfig = TRUE;
-        return;
-      }
-    }
-    /* A valid BLS target that is absent (or USB-only) is a visible notice, not
-     * permission to boot another row. */
-    Menu->RejectedLines++;
-    return;
-  }
-
-  if (Config->DefaultIndex < Config->Count &&
-      Config->DefaultIndex != SFB_CONFIG_NO_DEFAULT &&
-      ConfiguredIndex != SFB_NO_INDEX &&
-      ConfiguredIndex < Menu->Count) {
-    Menu->DefaultIndex = ConfiguredIndex;
-    if (!Menu->Entry[Menu->DefaultIndex].IsUsb) {
-      /*
-       * A default for the other slot must not boot unattended: the flipped
-       * slot invalidated it. The row stays highlighted so it is still one
-       * keypress away, but the user has to look first.
-       */
-      Menu->DefaultFromConfig = (BOOLEAN)!Menu->SlotMismatch;
+  Menu->SlotMismatch = FALSE;
+  for (Index = 0; Index < Menu->Count; Index++) {
+    if (Menu->Entry[Index].CurrentSlot && !Menu->Entry[Index].IsUsb &&
+        SfbIsManagedAblEntry (&Menu->Entry[Index])) {
+      Menu->DefaultIndex = Index;
+      Menu->DefaultFromConfig = TRUE;
       return;
     }
-    Menu->RejectedLines++;
-    return;
-  }
-
-  /* A named entry was parsed, but its image is no longer present. */
-  if (Config->DefaultIndex != SFB_CONFIG_NO_DEFAULT) {
-    Menu->RejectedLines++;
   }
 }
 
@@ -1339,8 +1289,8 @@ SfbBuildMenu (OUT SFB_MENU_STATE *Menu, IN SFB_BOOT_MODE Mode, IN BOOLEAN FirstR
   Menu->MenuMode = SfbConfigMenuSilent;
   Menu->KeyWindowMs = SFB_CONFIG_KEY_WINDOW_DEFAULT;
   Menu->MenuTimeoutSeconds = SFB_CONFIG_MENU_TIMEOUT_DEFAULT;
-  Menu->ShowBooting = TRUE;
-  Menu->LockPolicy = SfbConfigLockAsNeeded;
+  Menu->ShowBooting = FALSE;
+  Menu->LockPolicy = SfbConfigLockNever;
   BootOnceNotice = SfbBootOnceTakeNotice ();
 
   if (FirstRun) {
