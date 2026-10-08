@@ -95,6 +95,16 @@ pub fn prepare_loader(
     let gm2p = mode2_profile::derive_profile(vbmeta)
         .map_err(|e| Error::Profile(e.to_string()))?
         .to_bytes();
+    prepare_loader_with_profile(abl, &gm2p, policy)
+}
+
+pub fn prepare_loader_with_profile(
+    abl: &[u8],
+    profile: &[u8],
+    policy: TzMapPolicy,
+) -> Result<PreparedLoader, Error> {
+    let gm2p = mode2_profile::Profile::decode(profile)
+        .map_err(|e| Error::Profile(e.to_string()))?.to_bytes();
     let (loader, source, tzmap) = inspect_and_patch(abl, Some(policy))?;
     let tzmap = tzmap.expect("explicit derivation policy always produces TZ map");
     Ok(PreparedLoader {

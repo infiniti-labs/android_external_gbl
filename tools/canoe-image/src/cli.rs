@@ -25,15 +25,21 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    SlotPayload {
+    PrepareExplicit {
         #[arg(long)]
-        loader: PathBuf,
+        abl: PathBuf,
         #[arg(long)]
-        profile: PathBuf,
+        staged: PathBuf,
         #[arg(long)]
-        tzmap: PathBuf,
+        system_version: u32,
         #[arg(long)]
-        output: PathBuf,
+        system_spl: u32,
+        #[arg(long)]
+        rot_digest: String,
+        #[arg(long)]
+        pubkey_digest: String,
+        #[arg(long)]
+        verified_boot_hash: String,
     },
     /// Derive a loader and sidecars, or probe an ABL without writing outputs.
     Build(build::BuildArgs),
@@ -128,9 +134,34 @@ impl ToolResolver for CommandTools<'_> {
 impl Cli {
     fn execute(&self) -> Result<Value, Box<dyn std::error::Error>> {
         Ok(match &self.command {
-            Command::SlotPayload { loader, profile, tzmap, output } => {
-                crate::slot_payload::pack(loader, profile, tzmap, output)?;
-                json!({"output": output})
+            Command::PrepareExplicit { abl, staged, system_version, system_spl,
+                rot_digest, pubkey_digest, verified_boot_hash } => {
+                let digest = |value: &str| -> Result<[u8; 32], Box<dyn std::error::Error>> {
+                    if value.len() != 64 || !value.bytes().all(|b| b.is_ascii_hexdigit()) {
+                        return Err("profile digests must contain exactly 64 hexadecimal characters".into());
+                    }
+                    let mut result = [0; 32];
+                    for (index, byte) in result.iter_mut().enumerate() {
+                        *byte = u8::from_str_radix(&value[index * 2..index * 2 + 2], 16)?;
+                    }
+                    Ok(result)
+                };
+                let profile = mode2_profile::Profile {
+                    magic: *b"GM2P", version: 1, reserved: 0,
+                    is_unlocked: 0, color: 0,
+                    system_version: *system_version, system_spl: *system_spl,
+                    rot_digest: digest(rot_digest)?,
+                    pubkey_digest: digest(pubkey_digest)?,
+                    vbh: digest(verified_boot_hash)?,
+                };
+                let prepared = crate::loader::prepare_loader_with_profile(
+                    &fs::read(abl)?, &profile.to_bytes(),
+                    crate::loader::TzMapPolicy::ProtocolFallback)?;
+                fs::create_dir(staged)?;
+                fs::write(staged.join("boot.efi"), prepared.loader)?;
+                fs::write(staged.join("boot.efi.gm2p"), prepared.gm2p)?;
+                fs::write(staged.join("boot.efi.tzmap"), prepared.tzmap)?;
+                json!({"staged": staged})
             }
             Command::Build(args) => {
                 match build::execute(args, &CommandTools(args.tools.as_deref()))? {

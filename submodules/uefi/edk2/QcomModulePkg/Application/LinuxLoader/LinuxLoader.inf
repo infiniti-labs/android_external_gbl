@@ -70,7 +70,7 @@
 
 [Sources]
 	LinuxLoader.c
-	GblSlot.c
+	GblEmbedded.c
 	SuperFbBootOnce.h
 	SuperFbBootOnce.c
 	SuperFbBcbCommand.h

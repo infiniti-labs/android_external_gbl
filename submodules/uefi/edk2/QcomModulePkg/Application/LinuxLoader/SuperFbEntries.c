@@ -1230,23 +1230,6 @@ SfbCheckConfigSlots (IN OUT SFB_MENU_STATE *Menu,
     Menu->SlotMismatch = TRUE;
   }
 }
-STATIC
-BOOLEAN
-SfbAsciiEqual (IN CONST CHAR8 *Left, IN CONST CHAR8 *Right)
-{
-  UINTN Index = 0;
-
-  if (Left == NULL || Right == NULL) {
-    return FALSE;
-  }
-  while (Left[Index] != '\0' && Right[Index] != '\0') {
-    if (Left[Index] != Right[Index]) {
-      return FALSE;
-    }
-    Index++;
-  }
-  return (BOOLEAN)(Left[Index] == '\0' && Right[Index] == '\0');
-}
 
 STATIC
 VOID

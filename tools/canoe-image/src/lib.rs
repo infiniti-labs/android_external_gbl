@@ -1,6 +1,4 @@
 pub mod loader;
-#[cfg(feature = "native")]
-pub mod slot_payload;
 pub mod android;
 #[cfg(feature = "native")]
 pub mod abl_verify;
