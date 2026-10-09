@@ -309,6 +309,21 @@ prebuilt_etc {
     installable: false,
 }
 
+prebuilt_etc {
+    name: "gbl_ota_efisp",
+    src: ":gbl_efi_image",
+    filename: "efisp.img",
+    sub_dir: "gbl",
+}
+
+cc_binary {
+    name: "gbl_postinstall",
+    srcs: ["installer/postinstall.cpp"],
+    static_executable: true,
+    compile_multilib: "64",
+    stl: "libc++_static",
+}
+
 soong_config_module_type {
     name: "gbl_init_library",
     module_type: "cc_library_static",

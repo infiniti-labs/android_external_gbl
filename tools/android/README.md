@@ -59,3 +59,17 @@ relocations. A successful host build does not establish device boot behavior.
 Run the existing firmware host contracts separately and report failures without
 changing runtime policy merely to satisfy an outdated expectation. Building
 and inspection do not authorize flashing or partition writes.
+
+## OTA installation
+
+GBL configuration packages `system/etc/gbl/efisp.img` and the static native
+`gbl_postinstall` executable. The mandatory system postinstall runs the existing
+optional dex-preopt operation, validates the EFI image and partition capacity,
+skips an already matching image, and otherwise writes, flushes, and reads back
+the image. It does not modify persist, DeviceInfo, or slot selection.
+
+Shared `efisp` replacement is not A/B-atomic: interrupted writes affect both
+slots. Initial installation runs under the source installation's SELinux policy;
+that environment must already permit access to `efisp`, or mandatory postinstall
+fails. Target vendor policy supplies the dedicated partition label and access
+for subsequent updates. The host build performs no device writes.

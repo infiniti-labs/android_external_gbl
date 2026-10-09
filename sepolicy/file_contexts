@@ -1,0 +1,1 @@
+/dev/block/by-name/efisp u:object_r:gbl_efisp_block_device:s0
