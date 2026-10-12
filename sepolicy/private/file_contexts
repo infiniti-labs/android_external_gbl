@@ -1,1 +1,1 @@
-/(system|system/system)/bin/gbl_postinstall u:object_r:postinstall_exec:s0
+/(system|system/system)/bin/ota_postinstall u:object_r:postinstall_exec:s0

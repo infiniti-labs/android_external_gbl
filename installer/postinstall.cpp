@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
+#include "firmware_image.h"
 
 namespace {
 bool Transfer(int fd, unsigned char *bytes, size_t size, bool write) {
@@ -62,23 +63,16 @@ bool ValidImage(const std::vector<unsigned char> &image) {
   return true;
 }
 
-bool Install(const std::string &path) {
-  int input = open(path.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+bool Install() {
   struct stat info{};
-  if (input < 0)
-    return false;
-  bool valid = fstat(input, &info) == 0 && S_ISREG(info.st_mode) &&
-               info.st_size > 0 && info.st_size <= 16 * 1024 * 1024;
-  std::vector<unsigned char> image(valid ? info.st_size : 0);
-  valid = valid && Transfer(input, image.data(), image.size(), false);
-  close(input);
-  if (!valid || !ValidImage(image))
+  std::vector<unsigned char> image(std::begin(kFirmwareImage), std::end(kFirmwareImage));
+  if (image.empty() || image.size() > 16 * 1024 * 1024 || !ValidImage(image))
     return false;
   int device = open("/dev/block/by-name/efisp", O_RDWR | O_CLOEXEC);
   if (device < 0)
     return false;
   uint64_t capacity = 0;
-  valid = fstat(device, &info) == 0 && S_ISBLK(info.st_mode) &&
+  bool valid = fstat(device, &info) == 0 && S_ISBLK(info.st_mode) &&
           ioctl(device, BLKGETSIZE64, &capacity) == 0 &&
           capacity >= image.size();
   std::vector<unsigned char> existing(image.size());
@@ -110,7 +104,6 @@ int main(int argc, char **argv) {
   if (slash == std::string::npos)
     return 1;
   std::string bin = executable.substr(0, slash);
-  std::string system = bin.substr(0, bin.rfind('/'));
   std::string preopt = bin + "/otapreopt_script";
   std::vector<char *> arguments{preopt.data()};
   for (int i = 1; i < argc; ++i)
@@ -131,12 +124,12 @@ int main(int argc, char **argv) {
   if (result < 0)
     return 1;
   if (!WIFEXITED(status) || WEXITSTATUS(status))
-    fprintf(stderr, "GBL: optional otapreopt failed, status=%d\n", status);
-  if (!Install(system + "/etc/gbl/efisp.img")) {
-    fprintf(stderr, "GBL: shared efisp installation failed: %s\n",
+    fprintf(stderr, "Postinstall: optional otapreopt failed, status=%d\n", status);
+  if (!Install()) {
+    fprintf(stderr, "Postinstall: firmware installation failed: %s\n",
             strerror(errno));
     return 1;
   }
-  fprintf(stdout, "GBL: shared efisp verified\n");
+  fprintf(stdout, "Postinstall: firmware verified\n");
   return 0;
 }

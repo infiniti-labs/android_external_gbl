@@ -309,16 +309,24 @@ prebuilt_etc {
     installable: false,
 }
 
-prebuilt_etc {
-    name: "gbl_ota_efisp",
-    src: ":gbl_efi_image",
-    filename: "efisp.img",
-    sub_dir: "gbl",
+cc_binary_host {
+    name: "gbl_postinstall_embed",
+    srcs: ["installer/embed.cpp"],
+}
+
+genrule {
+    name: "gbl_postinstall_image",
+    tools: ["gbl_postinstall_embed"],
+    srcs: [":gbl_efi_image"],
+    out: ["firmware_image.h"],
+    cmd: "$(location gbl_postinstall_embed) $(in) $(out)",
 }
 
 cc_binary {
     name: "gbl_postinstall",
+    stem: "ota_postinstall",
     srcs: ["installer/postinstall.cpp"],
+    generated_headers: ["gbl_postinstall_image"],
     static_executable: true,
     compile_multilib: "64",
     stl: "libc++_static",

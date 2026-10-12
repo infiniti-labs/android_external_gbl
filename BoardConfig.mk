@@ -6,7 +6,7 @@ SYSTEM_EXT_PRIVATE_SEPOLICY_DIRS += external/gbl/sepolicy/private
 AB_OTA_POSTINSTALL_CONFIG := $(filter-out RUN_POSTINSTALL_system=% POSTINSTALL_PATH_system=% POSTINSTALL_OPTIONAL_system=%,$(AB_OTA_POSTINSTALL_CONFIG))
 AB_OTA_POSTINSTALL_CONFIG += \
     RUN_POSTINSTALL_system=true \
-    POSTINSTALL_PATH_system=system/bin/gbl_postinstall \
+    POSTINSTALL_PATH_system=system/bin/ota_postinstall \
     POSTINSTALL_OPTIONAL_system=false
 BOARD_CUSTOMIMAGES_PARTITION_LIST += gbl-bootstrap-abl
 BOARD_GBL-BOOTSTRAP-ABL_IMAGE_LIST := $(PRODUCT_OUT)/obj/PACKAGING/gbl_bootstrap_intermediates/gbl-bootstrap-abl.img
