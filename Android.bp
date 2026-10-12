@@ -314,7 +314,7 @@ cc_binary_host {
     srcs: ["installer/embed.cpp"],
 }
 
-genrule {
+cc_genrule {
     name: "gbl_postinstall_image",
     tools: ["gbl_postinstall_embed"],
     srcs: [":gbl_efi_image"],
