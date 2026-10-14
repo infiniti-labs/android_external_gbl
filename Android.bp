@@ -336,7 +336,7 @@ soong_config_module_type {
     name: "gbl_init_library",
     module_type: "cc_library_static",
     config_namespace: "gbl_init",
-    value_variables: ["verified_boot_hash"],
+    value_variables: ["verified_boot_hash", "vbmeta_size"],
     properties: ["cflags"],
 }
 
@@ -352,6 +352,9 @@ gbl_init_library {
     soong_config_variables: {
         verified_boot_hash: {
             cflags: ["-DGBL_VERIFIED_BOOT_HASH=\"%s\""],
+        },
+        vbmeta_size: {
+            cflags: ["-DGBL_VBMETA_SIZE=\"%s\""],
         },
     },
 }

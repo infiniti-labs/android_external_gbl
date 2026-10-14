@@ -32,4 +32,14 @@ void vendor_load_properties() {
         override_property("ro.boot.vbmeta.hash_alg", "sha256");
     }
 #endif
+#ifdef GBL_VBMETA_SIZE
+    constexpr std::string_view size = GBL_VBMETA_SIZE;
+    if (size.empty() || !std::all_of(size.begin(), size.end(), [](char c) {
+            return c >= '0' && c <= '9';
+        })) {
+        LOG(ERROR) << "GBL: invalid configured vbmeta size";
+        return;
+    }
+    override_property("ro.boot.vbmeta.size", GBL_VBMETA_SIZE);
+#endif
 }
