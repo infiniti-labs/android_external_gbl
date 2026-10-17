@@ -331,30 +331,3 @@ cc_binary {
     compile_multilib: "64",
     stl: "libc++_static",
 }
-
-soong_config_module_type {
-    name: "gbl_init_library",
-    module_type: "cc_library_static",
-    config_namespace: "gbl_init",
-    value_variables: ["verified_boot_hash", "vbmeta_size"],
-    properties: ["cflags"],
-}
-
-gbl_init_library {
-    name: "libinit_gbl",
-    recovery_available: true,
-    srcs: ["init/init_gbl.cpp"],
-    whole_static_libs: ["//device/oneplus/sm8850-common:libinit_oplus"],
-    shared_libs: [
-        "libbase",
-        "libfs_mgr",
-    ],
-    soong_config_variables: {
-        verified_boot_hash: {
-            cflags: ["-DGBL_VERIFIED_BOOT_HASH=\"%s\""],
-        },
-        vbmeta_size: {
-            cflags: ["-DGBL_VBMETA_SIZE=\"%s\""],
-        },
-    },
-}
