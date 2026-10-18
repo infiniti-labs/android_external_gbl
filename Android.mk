@@ -7,7 +7,7 @@ $(PRODUCT_OUT)/obj/PACKAGING/gbl_bootstrap_intermediates/gbl-bootstrap-abl.img: 
 	$(copy-file-to-target)
 
 gbl_efi := $(call intermediates-dir-for,ETC,gbl_efi)/gbl_efi
-$(PRODUCT_OUT)/efisp.img: $(gbl_efi)
+$(PRODUCT_OUT)/obj/PACKAGING/gbl_efi_intermediates/efisp.img: $(gbl_efi)
 	$(copy-file-to-target)
 INSTALLED_RADIOIMAGE_TARGET += $(PRODUCT_OUT)/efisp.img
 endif
