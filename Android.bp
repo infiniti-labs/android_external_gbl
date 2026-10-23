@@ -44,7 +44,7 @@ genrule {
     name: "gbl_embedded_assets",
     tools: ["gbl_asset_generator"],
     srcs: [
-        "//vendor/oneplus/infiniti:gbl_stock_abl",
+        "//vendor/oneplus/infiniti:abl_chainload",
         "tools/abl-tzmap/evidence/*.commands",
     ],
     out: [
@@ -53,7 +53,7 @@ genrule {
         "prepared/boot.efi.gm2p",
         "prepared/boot.efi.tzmap",
     ],
-    cmd: "mkdir -p $(genDir)/evidence && cp $(locations tools/abl-tzmap/evidence/*.commands) $(genDir)/evidence/ && $(location gbl_asset_generator) --abl $(location //vendor/oneplus/infiniti:gbl_stock_abl) --staged $(genDir)/prepared --evidence $(genDir)/evidence --header $(genDir)/GblEmbedded.h" +
+    cmd: "mkdir -p $(genDir)/evidence && cp $(locations tools/abl-tzmap/evidence/*.commands) $(genDir)/evidence/ && $(location gbl_asset_generator) --abl $(location //vendor/oneplus/infiniti:abl_chainload) --staged $(genDir)/prepared --evidence $(genDir)/evidence --header $(genDir)/GblEmbedded.h" +
         " --system-version " + select(soong_config_variable("gbl_build", "system_version"), {
             any @ val: val,
             default: "0",
